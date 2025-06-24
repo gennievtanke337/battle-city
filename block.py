@@ -1,20 +1,18 @@
 import pygame
 
 class Block:
-    def __init__(self, x, y, img, indestructible=False):
+    def __init__(self, x, y, img, destructible=True):
         self.img = img
         self.rect = self.img.get_rect(topleft=(x, y))
-        self.health = 3 if not indestructible else -1
-        self.indestructible = indestructible
-        self.destroyed = False
+        self.destructible = destructible
+        self.health = 3 if destructible else None
 
     def hit(self):
-        if self.indestructible:
-            return
-        self.health -= 1
-        if self.health <= 0:
-            self.destroyed = True
+        if self.destructible and self.health is not None:
+            self.health -= 1
+            if self.health <= 0:
+                return True
+        return False
 
     def render(self, surf):
-        if not self.destroyed:
-            surf.blit(self.img, self.rect)
+        surf.blit(self.img, self.rect)
