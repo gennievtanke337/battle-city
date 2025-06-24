@@ -24,8 +24,16 @@ class Bullet:
             "right": (self.SPEED, 0)
         }[direction]
 
-    def update(self, targets):
+    def update(self, blocks, targets):
         self.rect.move_ip(self.dx, self.dy)
+
+        for block in blocks:
+            if block.destructible and self.rect.colliderect(block.rect):
+                block.health -= 1
+                if block.health <= 0:
+                    blocks.remove(block)
+                return False
+
         for target in targets:
             if self.rect.colliderect(target.rect):
                 if hasattr(target, "hit"):

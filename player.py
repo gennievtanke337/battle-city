@@ -10,7 +10,7 @@ class Player:
         self.last_shot_time = 0
         self.shot_delay = 600
         self.direction = "up"
-        self.health = 2
+        self.health = 3
 
     def move(self, keys, blocks):
         dx = dy = 0
@@ -49,7 +49,6 @@ class Player:
         self.health -= 1
         if self.health <= 0:
             self.explosion_sound.play()
-            # Можна додати логіку завершення гри або перезапуску
 
     def render(self, surf):
         surf.blit(self.img, self.rect)

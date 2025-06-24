@@ -4,7 +4,6 @@ from bullet import Bullet
 
 class Enemy:
     SPEED = 2
-    SHOT_DELAY = 600
 
     def __init__(self, x, y, img, shoot_sound, explosion_sound):
         self.original_img = img
@@ -14,7 +13,8 @@ class Enemy:
         self.shoot_sound = shoot_sound
         self.explosion_sound = explosion_sound
         self.last_shot_time = 0
-        self.health = 1
+        self.shot_delay = 600
+        self.health = 2
         self.destroyed = False
 
     def update(self, player, blocks, enemies, enemy_bullets):
@@ -24,7 +24,7 @@ class Enemy:
         self.look_and_move(player, blocks)
 
         now = pygame.time.get_ticks()
-        if now - self.last_shot_time > self.SHOT_DELAY and self.can_see_target(player, blocks):
+        if now - self.last_shot_time > self.shot_delay and self.can_see_target(player, blocks):
             bullet = self.shoot()
             if bullet:
                 enemy_bullets.append(bullet)
@@ -73,9 +73,13 @@ class Enemy:
 
     def shoot(self):
         now = pygame.time.get_ticks()
-        if now - self.last_shot_time >= self.SHOT_DELAY:
+        if now - self.last_shot_time >= self.shot_delay:
             self.shoot_sound.play()
+            angle = {"up": 90, "right": 0, "down": -90, "left": 180}[self.direction]
+            self.img = pygame.transform.rotate(self.original_img, angle)
+            self.rect = self.img.get_rect(center=self.rect.center)
             x, y = self.rect.center
+            self.last_shot_time = now
             return EnemyBullet(x, y, self.direction)
         return None
 
@@ -108,8 +112,16 @@ class EnemyBullet(Bullet):
             "right": (Bullet.SPEED, 0)
         }[direction]
 
-    def update(self, targets):
+    def update(self, blocks, targets):
         self.rect.move_ip(self.dx, self.dy)
+
+        for block in blocks:
+            if block.destructible and self.rect.colliderect(block.rect):
+                block.health -= 1
+                if block.health <= 0:
+                    blocks.remove(block)
+                return False
+
         for target in targets:
             if self.rect.colliderect(target.rect):
                 if hasattr(target, "hit"):
