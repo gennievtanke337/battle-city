@@ -25,12 +25,43 @@ font = pygame.font.SysFont(None, 72)
 title_text = font.render("Battle City Remake", True, (255, 255, 255))
 start_text = font.render("Press ENTER to Start", True, (255, 255, 255))
 
+
 def play_music(file, loops=-1):
     pygame.mixer.music.load(file)
     pygame.mixer.music.play(loops)
 
+
 def stop_music():
     pygame.mixer.music.stop()
+
+
+def game_loop():
+    game = Game(screen, player_img, block_img, shoot_sound, explosion_sound, enemy_img)
+    running = True
+    game_over = False
+
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return False
+            game.handle_events(event)
+
+            if game_over and event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_r:
+                    return True
+
+        if not game_over:
+            game.update()
+            if game.player.health <= 0:
+                game_over = True
+
+        game.render()
+
+        pygame.display.flip()
+        clock.tick(60)
+
+    return True
+
 
 def main():
     in_menu = True
@@ -62,18 +93,6 @@ def main():
 
     pygame.quit()
 
-def game_loop():
-    game = Game(screen, player_img, block_img, shoot_sound, explosion_sound, enemy_img)
-    running = True
-    while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                return False
-        game.update()
-        game.render()
-        pygame.display.flip()
-        clock.tick(60)
-    return True
 
 if __name__ == "__main__":
     main()

@@ -1,56 +1,101 @@
 import pygame
+import random
 import math
 from bullet import Bullet
 
 class Enemy:
     SPEED = 2
+    SHOOT_DELAY = 600
+    CHANGE_DIR_INTERVAL = 2000
+
+    DIRECTIONS = {
+        "up": (0, -SPEED),
+        "down": (0, SPEED),
+        "left": (-SPEED, 0),
+        "right": (SPEED, 0),
+    }
 
     def __init__(self, x, y, img, shoot_sound, explosion_sound):
         self.original_img = img
         self.img = img
         self.rect = self.img.get_rect(center=(x, y))
-        self.direction = "down"
         self.shoot_sound = shoot_sound
         self.explosion_sound = explosion_sound
-        self.last_shot_time = 0
-        self.shot_delay = 600
-        self.health = 2
+        self.health = 1
         self.destroyed = False
+        self.direction = random.choice(list(self.DIRECTIONS.keys()))
+        self.dx, self.dy = self.DIRECTIONS[self.direction]
+        self.last_dir_change = pygame.time.get_ticks()
+        self.last_shot_time = 0
 
-    def update(self, player, blocks, enemies, enemy_bullets):
+    def update(self, player, blocks):
         if self.destroyed:
-            return
-
-        self.look_and_move(player, blocks)
+            return None
 
         now = pygame.time.get_ticks()
-        if now - self.last_shot_time > self.shot_delay and self.can_see_target(player, blocks):
-            bullet = self.shoot()
-            if bullet:
-                enemy_bullets.append(bullet)
-            self.last_shot_time = now
 
-    def look_and_move(self, player, blocks):
-        dx = player.rect.centerx - self.rect.centerx
-        dy = player.rect.centery - self.rect.centery
-        distance = math.hypot(dx, dy)
-        if distance == 0:
-            return
-        dx /= distance
-        dy /= distance
-
-        next_pos = self.rect.move(dx * self.SPEED, dy * self.SPEED)
-
-        if not any(next_pos.colliderect(b.rect.inflate(-8, -8)) for b in blocks):
-            self.rect = next_pos
-            self.update_direction(dx, dy)
-
-    def update_direction(self, dx, dy):
-        if abs(dx) > abs(dy):
-            self.direction = "right" if dx > 0 else "left"
+        if self.can_see_target(player, blocks):
+            self.move_towards(player.rect.center, blocks)
         else:
-            self.direction = "down" if dy > 0 else "up"
-        angle = {"up": 90, "right": 0, "down": -90, "left": 180}[self.direction]
+            if now - self.last_dir_change > self.CHANGE_DIR_INTERVAL:
+                self.last_dir_change = now
+                self.change_direction(blocks)
+            self.try_move(blocks)
+
+        self.update_image_direction()
+
+        if now - self.last_shot_time > self.SHOOT_DELAY and self.can_see_target(player, blocks):
+            bullet = self.shoot()
+            self.last_shot_time = now
+            return bullet
+        return None
+
+    def move_towards(self, target_pos, blocks):
+        x, y = self.rect.center
+        tx, ty = target_pos
+        dx = tx - x
+        dy = ty - y
+
+        dist_x = abs(dx)
+        dist_y = abs(dy)
+
+        if dist_y >= dist_x:
+            self.direction = "up" if dy < 0 else "down"
+        else:
+            self.direction = "left" if dx < 0 else "right"
+
+        self.dx, self.dy = self.DIRECTIONS[self.direction]
+        self.try_move(blocks)
+
+    def try_move(self, blocks):
+        next_rect = self.rect.move(self.dx, self.dy)
+        for block in blocks:
+            if next_rect.colliderect(block.rect):
+                if block.destructible and block.health > 0:
+                    block.health -= 1
+                    if block.health <= 0:
+                        blocks.remove(block)
+                self.change_direction(blocks)
+                return False
+        self.rect = next_rect
+        return True
+
+    def change_direction(self, blocks):
+        options = list(self.DIRECTIONS.keys())
+        random.shuffle(options)
+        for dir_ in options:
+            dx, dy = self.DIRECTIONS[dir_]
+            test_rect = self.rect.move(dx, dy)
+            if not any(test_rect.colliderect(b.rect) for b in blocks):
+                self.direction = dir_
+                self.dx, self.dy = dx, dy
+                return
+        self.dx = -self.dx
+        self.dy = -self.dy
+
+    def update_image_direction(self):
+        angle_map = {"up": 90, "down": -90, "left": 180, "right": 0}
+        angle = angle_map[self.direction]
         self.img = pygame.transform.rotate(self.original_img, angle)
         self.rect = self.img.get_rect(center=self.rect.center)
 
@@ -59,9 +104,10 @@ class Enemy:
         x2, y2 = target.rect.center
         dx = x2 - x1
         dy = y2 - y1
-        steps = int(max(abs(dx), abs(dy)) // (self.rect.width // 2)) + 1
-        if steps == 0:
+        distance = math.hypot(dx, dy)
+        if distance == 0:
             return False
+        steps = int(distance // (self.rect.width // 2)) + 1
         for i in range(1, steps):
             xi = x1 + dx * i / steps
             yi = y1 + dy * i / steps
@@ -72,16 +118,9 @@ class Enemy:
         return True
 
     def shoot(self):
-        now = pygame.time.get_ticks()
-        if now - self.last_shot_time >= self.shot_delay:
-            self.shoot_sound.play()
-            angle = {"up": 90, "right": 0, "down": -90, "left": 180}[self.direction]
-            self.img = pygame.transform.rotate(self.original_img, angle)
-            self.rect = self.img.get_rect(center=self.rect.center)
-            x, y = self.rect.center
-            self.last_shot_time = now
-            return EnemyBullet(x, y, self.direction)
-        return None
+        self.shoot_sound.play()
+        x, y = self.rect.center
+        return Bullet(x, y, self.direction, image_path="bullet_red.png", scale=1.4)
 
     def hit(self):
         self.health -= 1
@@ -92,39 +131,3 @@ class Enemy:
     def render(self, surf):
         if not self.destroyed:
             surf.blit(self.img, self.rect)
-
-class EnemyBullet(Bullet):
-    def __init__(self, x, y, direction):
-        original = pygame.image.load("bullet_red.png").convert_alpha()
-        scale_factor = 1.4
-        width = int(original.get_width() * scale_factor)
-        height = int(original.get_height() * scale_factor)
-        scaled = pygame.transform.scale(original, (width, height))
-        angle_map = {"up": 0, "right": -90, "down": 180, "left": 90}
-        rotated = pygame.transform.rotate(scaled, angle_map[direction])
-        self.img = rotated
-        self.rect = self.img.get_rect(center=(x, y))
-
-        self.dx, self.dy = {
-            "up": (0, -Bullet.SPEED),
-            "down": (0, Bullet.SPEED),
-            "left": (-Bullet.SPEED, 0),
-            "right": (Bullet.SPEED, 0)
-        }[direction]
-
-    def update(self, blocks, targets):
-        self.rect.move_ip(self.dx, self.dy)
-
-        for block in blocks:
-            if block.destructible and self.rect.colliderect(block.rect):
-                block.health -= 1
-                if block.health <= 0:
-                    blocks.remove(block)
-                return False
-
-        for target in targets:
-            if self.rect.colliderect(target.rect):
-                if hasattr(target, "hit"):
-                    target.hit()
-                return False
-        return True

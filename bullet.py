@@ -1,20 +1,23 @@
 import pygame
+import math
 
 class Bullet:
-    SPEED = 6
+    SPEED = 5
 
-    def __init__(self, x, y, direction):
-        original = pygame.image.load("bullet_green.png").convert_alpha()
-
-        scale_factor = 0.7  
-        width = int(original.get_width() * scale_factor)
-        height = int(original.get_height() * scale_factor)
-
+    def __init__(self, x, y, direction, image_path="bullet_green.png", scale=0.7):
+        original = pygame.image.load(image_path).convert_alpha()
+        width = int(original.get_width() * scale)
+        height = int(original.get_height() * scale)
         scaled = pygame.transform.scale(original, (width, height))
 
-        angle_map = {"up": 0, "right": -90, "down": 180, "left": 90}
-        rotated = pygame.transform.rotate(scaled, angle_map[direction])
-        self.img = rotated
+        angle_map = {
+            "up": 0,
+            "right": -90,
+            "down": 180,
+            "left": 90
+        }
+
+        self.img = pygame.transform.rotate(scaled, angle_map[direction])
         self.rect = self.img.get_rect(center=(x, y))
 
         self.dx, self.dy = {
