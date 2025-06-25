@@ -9,11 +9,13 @@ import os
 class Game:
     TILE_SIZE = 60
 
-    def __init__(self, screen, player_img, block_img, shoot_sound, explosion_sound, enemy_img):
+    def __init__(self, screen, player_img, block_img, shoot_sound, explosion_sound, enemy_img , block_st2, block_st3):
         self.screen = screen
         self.width, self.height = screen.get_size()
         self.player_img = player_img
         self.block_img = block_img
+        self.block_st2 = block_st2
+        self.block_st3 = block_st3
         self.enemy_img = enemy_img
         self.shoot_sound = shoot_sound
         self.explosion_sound = explosion_sound
@@ -38,8 +40,23 @@ class Game:
         self.map_width = self.width // self.TILE_SIZE
         self.map_height = self.height // self.TILE_SIZE
 
+        self.tile_size = 48
+        self.level_map = [
+    "BBBB  BBBB",
+    "B  B  B  B",
+    "BBBB  BBBB",
+    "          ",
+    " BBBB  BB ",
+    " BBBB  BB ",
+    "          ",
+    "BBBBBBBBBB",
+    "B    BB  B",
+    "BBBB  BBBB",
+]
+
         self.generate_border_blocks()
-        self.generate_random_blocks()
+        self.generate_brick_blocks()
+        #self.generate_random_blocks()
 
         px = self.width // 2
         py = self.height // 2
@@ -61,15 +78,29 @@ class Game:
                 self.enemies.append(enemy)
             attempts += 1
 
-    def generate_border_blocks(self):
-        for x in range(self.map_width):
-            self.blocks.append(Block(x * self.TILE_SIZE, 0, self.block_img, destructible=False))
-            self.blocks.append(Block(x * self.TILE_SIZE, (self.map_height - 1) * self.TILE_SIZE, self.block_img, destructible=False))
-        for y in range(1, self.map_height - 1):
-            self.blocks.append(Block(0, y * self.TILE_SIZE, self.block_img, destructible=False))
-            self.blocks.append(Block((self.map_width - 1) * self.TILE_SIZE, y * self.TILE_SIZE, self.block_img, destructible=False))
+    def generate_brick_blocks(self):
+        for row_index, row in enumerate(self.level_map):
+            for col_index, cell in enumerate(row):
+                x = col_index * self.tile_size
+                y = row_index * self.tile_size
 
-    def generate_random_blocks(self):
+                if cell == "B":
+                    self.blocks.append(Block(x, y, self.block_img, self.block_st2, self.block_st3, destructible=True))
+
+
+    def generate_border_blocks(self):
+        cols = self.width // self.tile_size
+        rows = self.height // self.tile_size
+
+        for x in range(cols):
+            for y in (0, rows - 1):
+                self.blocks.append(Block(x * self.tile_size, y * self.tile_size, self.block_img, self.block_st2, self.block_st3,  destructible=False))
+
+        for y in range(1, rows - 1):
+            for x in (0, cols - 1):
+                self.blocks.append(Block(x * self.tile_size, y * self.tile_size, self.block_img, self.block_st2, self.block_st3, destructible=False))
+
+    '''def generate_random_blocks(self):
         safe_zones = [
             pygame.Rect(self.width // 2 - 100, self.height // 2 - 100, 200, 200),
             pygame.Rect(100 - 60, 100 - 60, 160, 160),
@@ -83,7 +114,7 @@ class Game:
                     rect = pygame.Rect(x * self.TILE_SIZE, y * self.TILE_SIZE, self.TILE_SIZE, self.TILE_SIZE)
                     if any(safe.colliderect(rect) for safe in safe_zones):
                         continue
-                    self.blocks.append(Block(rect.x, rect.y, self.block_img, destructible=True))
+                    self.blocks.append(Block(rect.x, rect.y, self.block_img, destructible=True))''' #Занотував бо можливо пригодиться, але поки що ні(Ян)
 
     def update(self):
         if self.game_over or self.game_won:

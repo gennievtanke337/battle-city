@@ -4,16 +4,27 @@ from game import Game
 pygame.init()
 pygame.mixer.init()
 
-screen_width = int(1920 * 0.75)
-screen_height = int(720 * 0.75)
+screen_width = int(576)
+screen_height = int(576)
 
 screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.set_caption("Battle City Remake")
 clock = pygame.time.Clock()
 
 player_img = pygame.image.load("player_tank.png").convert_alpha()
-block_img = pygame.image.load("barrel.png").convert_alpha()
+block_img = pygame.image.load("block_new_1.png").convert_alpha()
+block_st2_img = pygame.image.load("block_new_2.png").convert_alpha()
+block_st3_img = pygame.image.load("block_new_3.png").convert_alpha()
 enemy_img = pygame.image.load("enemy_tank.png").convert_alpha()
+
+new_size = (48, 48)
+player_img = pygame.transform.scale(player_img, new_size)
+enemy_img = pygame.transform.scale(enemy_img, new_size)
+
+
+block_img = pygame.transform.scale(block_img, new_size)
+block_st2_img = pygame.transform.scale(block_st2_img, new_size)
+block_st3_img = pygame.transform.scale(block_st3_img, new_size)
 
 shoot_sound = pygame.mixer.Sound("shoot_sound.wav")
 explosion_sound = pygame.mixer.Sound("explosion_sound.wav")
@@ -33,10 +44,10 @@ def play_music(file, loops=-1):
 
 def stop_music():
     pygame.mixer.music.stop()
-
+ 
 
 def game_loop():
-    game = Game(screen, player_img, block_img, shoot_sound, explosion_sound, enemy_img)
+    game = Game(screen, player_img, block_img, shoot_sound, explosion_sound, enemy_img, block_st2_img, block_st3_img)
     running = True
 
     while running:

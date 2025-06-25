@@ -32,10 +32,15 @@ class Bullet:
 
         for block in blocks:
             if block.destructible and self.rect.colliderect(block.rect):
-                block.health -= 1
-                if block.health <= 0:
-                    blocks.remove(block)
-                return False
+                    block.health -= 1
+                    if block.health == 2:
+                        block.img = block.img_st2
+                    elif block.health == 1:
+                        block.img = block.img_st3
+                    if block.health <= 0:
+                        blocks.remove(block)
+
+                    return False
 
         for target in targets:
             if self.rect.colliderect(target.rect):
