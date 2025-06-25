@@ -38,7 +38,6 @@ def stop_music():
 def game_loop():
     game = Game(screen, player_img, block_img, shoot_sound, explosion_sound, enemy_img)
     running = True
-    game_over = False
 
     while running:
         for event in pygame.event.get():
@@ -46,15 +45,7 @@ def game_loop():
                 return False
             game.handle_events(event)
 
-            if game_over and event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_r:
-                    return True
-
-        if not game_over:
-            game.update()
-            if game.player.health <= 0:
-                game_over = True
-
+        game.update()
         game.render()
 
         pygame.display.flip()
