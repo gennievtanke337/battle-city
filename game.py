@@ -85,7 +85,7 @@ class Game:
         spawned = 0
         i = 0
         max_spawn_points = len(spawn_points)
-        max_attempts = 100  # обмеження, щоб не зависати
+        max_attempts = 100  # обмеження, щоб не зависати бо гра вилітала взагалі коли я виправив код напевно через те що була бескінечна перевірка чи спавниться ворог коректно
         attempts = 0
 
         while spawned < self.max_enemies and attempts < max_attempts:
