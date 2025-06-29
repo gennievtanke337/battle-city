@@ -71,10 +71,7 @@ class Enemy:
         next_rect = self.rect.move(self.dx, self.dy)
         for block in blocks:
             if next_rect.colliderect(block.rect):
-                if block.destructible and block.health > 0:
-                    block.health -= 1
-                    if block.health <= 0:
-                        blocks.remove(block)
+                # ТУТ НЕ ЛАМАЄМО БЛОК
                 self.change_direction(blocks)
                 return False
         self.rect = next_rect
@@ -90,6 +87,7 @@ class Enemy:
                 self.direction = dir_
                 self.dx, self.dy = dx, dy
                 return
+        # Якщо нема варіантів — розвернутись
         self.dx = -self.dx
         self.dy = -self.dy
 

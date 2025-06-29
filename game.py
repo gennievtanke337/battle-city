@@ -4,12 +4,11 @@ from player import Player
 from block import Block
 from enemy import Enemy
 from bullet import Bullet
-import os
 
 class Game:
     TILE_SIZE = 60
 
-    def __init__(self, screen, player_img, block_img, shoot_sound, explosion_sound, enemy_img , block_st2, block_st3):
+    def __init__(self, screen, player_img, block_img, shoot_sound, explosion_sound, enemy_img, block_st2, block_st3, max_enemies):
         self.screen = screen
         self.width, self.height = screen.get_size()
         self.player_img = player_img
@@ -20,13 +19,12 @@ class Game:
         self.shoot_sound = shoot_sound
         self.explosion_sound = explosion_sound
         self.font = pygame.font.SysFont("arial", 40)
-
+        self.max_enemies = max_enemies
         try:
             self.background = pygame.image.load("background.png").convert()
             self.background = pygame.transform.scale(self.background, (self.width, self.height))
         except (pygame.error, FileNotFoundError):
             self.background = None
-
         self.reset_game()
 
     def reset_game(self):
@@ -36,46 +34,72 @@ class Game:
         self.enemies = []
         self.game_over = False
         self.game_won = False
-
         self.map_width = self.width // self.TILE_SIZE
         self.map_height = self.height // self.TILE_SIZE
-
         self.tile_size = 48
         self.level_map = [
-    "BBBB  BBBB",
-    "B  B  B  B",
-    "BBBB  BBBB",
-    "          ",
-    " BBBB  BB ",
-    " BBBB  BB ",
-    "          ",
-    "BBBBBBBBBB",
-    "B    BB  B",
-    "BBBB  BBBB",
-]
-
+            "BBBB  BBBB",
+            "B  B  B  B",
+            "BBBB  BBBB",
+            "          ",
+            " BBBB  BB ",
+            " BBBB  BB ",
+            "          ",
+            "BBBBBBBBBB",
+            "B    BB  B",
+            "BBBB  BBBB",
+        ]
         self.generate_border_blocks()
         self.generate_brick_blocks()
-        #self.generate_random_blocks()
 
         px = self.width // 2
         py = self.height // 2
         self.player = Player(px, py, self.player_img, self.shoot_sound, self.explosion_sound)
 
-        max_enemies = 4
-        attempts = 0
-        padding = 2  # Відстань від краю, щоб вороги не спавнилися близько до меж
+        spawn_points = [
+            (self.TILE_SIZE * 1 + self.TILE_SIZE // 2, self.TILE_SIZE * 1 + self.TILE_SIZE // 2),
+            (self.TILE_SIZE * (self.map_width - 2) + self.TILE_SIZE // 2, self.TILE_SIZE * 1 + self.TILE_SIZE // 2),
+            (self.TILE_SIZE * 1 + self.TILE_SIZE // 2, self.TILE_SIZE * (self.map_height - 2) + self.TILE_SIZE // 2),
+            (self.TILE_SIZE * (self.map_width - 2) + self.TILE_SIZE // 2, self.TILE_SIZE * (self.map_height - 2) + self.TILE_SIZE // 2),
+            (self.TILE_SIZE * (self.map_width // 2) + self.TILE_SIZE // 2, self.TILE_SIZE * 1 + self.TILE_SIZE // 2),
+            (self.TILE_SIZE * 1 + self.TILE_SIZE // 2, self.TILE_SIZE * (self.map_height // 2) + self.TILE_SIZE // 2),
+            (self.TILE_SIZE * (self.map_width - 2) + self.TILE_SIZE // 2, self.TILE_SIZE * (self.map_height // 2) + self.TILE_SIZE // 2),
+        ]
 
-        while len(self.enemies) < max_enemies and attempts < 100:
-            ex = random.randint(padding, self.map_width - 1 - padding) * self.TILE_SIZE + self.TILE_SIZE // 2
-            ey = random.randint(padding, self.map_height - 1 - padding) * self.TILE_SIZE + self.TILE_SIZE // 2
-            enemy_rect = pygame.Rect(ex - self.TILE_SIZE // 2, ey - self.TILE_SIZE // 2, self.TILE_SIZE, self.TILE_SIZE)
-            blocked = any(block.rect.colliderect(enemy_rect) for block in self.blocks)
-            if enemy_rect.colliderect(self.player.rect):
-                blocked = True
-            if not blocked:
-                enemy = Enemy(ex, ey, self.enemy_img, self.shoot_sound, self.explosion_sound)
+        enemy_size = self.enemy_img.get_rect().size
+
+        def can_spawn(x, y):
+            enemy_rect = pygame.Rect(0, 0, *enemy_size)
+            enemy_rect.center = (x, y)
+            for block in self.blocks:
+                if block.rect.colliderect(enemy_rect):
+                    return False
+            for enemy in self.enemies:
+                if enemy.rect.colliderect(enemy_rect):
+                    return False
+            if self.player.rect.colliderect(enemy_rect):
+                return False
+            return True
+
+        self.enemies = []
+        spawned = 0
+        i = 0
+        max_spawn_points = len(spawn_points)
+        max_attempts = 100  # обмеження, щоб не зависати
+        attempts = 0
+
+        while spawned < self.max_enemies and attempts < max_attempts:
+            x, y = spawn_points[i % max_spawn_points]
+            offset_x = random.randint(-10, 10)
+            offset_y = random.randint(-10, 10)
+            nx, ny = x + offset_x, y + offset_y
+
+            if can_spawn(nx, ny):
+                enemy = Enemy(nx, ny, self.enemy_img, self.shoot_sound, self.explosion_sound)
                 self.enemies.append(enemy)
+                spawned += 1
+
+            i += 1
             attempts += 1
 
     def generate_brick_blocks(self):
@@ -83,73 +107,45 @@ class Game:
             for col_index, cell in enumerate(row):
                 x = col_index * self.tile_size
                 y = row_index * self.tile_size
-
                 if cell == "B":
                     self.blocks.append(Block(x, y, self.block_img, self.block_st2, self.block_st3, destructible=True))
-
 
     def generate_border_blocks(self):
         cols = self.width // self.tile_size
         rows = self.height // self.tile_size
-
         for x in range(cols):
             for y in (0, rows - 1):
-                self.blocks.append(Block(x * self.tile_size, y * self.tile_size, self.block_img, self.block_st2, self.block_st3,  destructible=False))
-
+                self.blocks.append(Block(x * self.tile_size, y * self.tile_size, self.block_img, self.block_st2, self.block_st3, destructible=False))
         for y in range(1, rows - 1):
             for x in (0, cols - 1):
                 self.blocks.append(Block(x * self.tile_size, y * self.tile_size, self.block_img, self.block_st2, self.block_st3, destructible=False))
 
-    '''def generate_random_blocks(self):
-        safe_zones = [
-            pygame.Rect(self.width // 2 - 100, self.height // 2 - 100, 200, 200),
-            pygame.Rect(100 - 60, 100 - 60, 160, 160),
-            pygame.Rect(self.width - 160, 100 - 60, 160, 160),
-            pygame.Rect(100 - 60, self.height - 160, 160, 160),
-            pygame.Rect(self.width - 160, self.height - 160, 160, 160),
-        ]
-        for x in range(1, self.map_width - 1):
-            for y in range(1, self.map_height - 1):
-                if random.random() < 0.2:  #ЗАМІТКА ТУТ МІНЯТИ КІЛЬКІСТЬ БЛОКІВ НА КАРТИ ДЛЯ ТЕСТІВ ПРИГОДИТЬСЯ
-                    rect = pygame.Rect(x * self.TILE_SIZE, y * self.TILE_SIZE, self.TILE_SIZE, self.TILE_SIZE)
-                    if any(safe.colliderect(rect) for safe in safe_zones):
-                        continue
-                    self.blocks.append(Block(rect.x, rect.y, self.block_img, destructible=True))''' #Занотував бо можливо пригодиться, але поки що ні(Ян)
-
     def update(self):
         if self.game_over or self.game_won:
             return
-
         keys = pygame.key.get_pressed()
         shot = self.player.move(keys, self.blocks)
-
         if shot:
             x, y = self.player.rect.center
             direction = self.player.direction
             self.bullets.append(Bullet(x, y, direction, image_path="bullet_green.png", scale=0.7))
             self.shoot_sound.play()
-
         for enemy in self.enemies:
             bullet = enemy.update(self.player, self.blocks)
             if bullet:
                 self.enemy_bullets.append(bullet)
                 self.shoot_sound.play()
-
         self.enemies = [enemy for enemy in self.enemies if not enemy.destroyed]
-
         for bullet in self.bullets[:]:
             alive = bullet.update(self.blocks, self.enemies)
             if not alive or bullet.off_screen(self.screen):
                 self.bullets.remove(bullet)
-
         for e_bullet in self.enemy_bullets[:]:
             alive = e_bullet.update(self.blocks, [self.player])
             if not alive or e_bullet.off_screen(self.screen):
                 self.enemy_bullets.remove(e_bullet)
-
         if self.player.health <= 0:
             self.game_over = True
-
         if len(self.enemies) == 0:
             self.game_won = True
 
@@ -157,8 +153,7 @@ class Game:
         if self.background:
             self.screen.blit(self.background, (0, 0))
         else:
-            self.screen.fill((255, 255, 255))  
-
+            self.screen.fill((255, 255, 255))
         for block in self.blocks:
             block.render(self.screen)
         for bullet in self.bullets:
@@ -193,5 +188,5 @@ class Game:
                 if event.key == pygame.K_r:
                     self.reset_game()
                 elif event.key == pygame.K_q:
-                    pygame.quit()
-                    exit()
+                    return "quit_to_menu"
+        return None
