@@ -29,7 +29,7 @@ explosion_sound = pygame.mixer.Sound("explosion_sound.wav")
 menu_music = "menu_background_music.mp3"
 game_music = "game_background_music.mp3"
 
-font = pygame.font.SysFont(None, 72)
+font = pygame.font.SysFont("verdana", 36)
 title_text = font.render("Battle City Remake", True, (255, 255, 255))
 start_text = font.render("1-Easy  2-Medium  3-Hard", True, (255, 255, 255))
 

@@ -18,7 +18,7 @@ class Game:
         self.enemy_img = enemy_img
         self.shoot_sound = shoot_sound
         self.explosion_sound = explosion_sound
-        self.font = pygame.font.SysFont("arial", 40)
+        self.font = pygame.font.SysFont("verdana", 50)
         self.max_enemies = max_enemies
         try:
             self.background = pygame.image.load("background.png").convert()
@@ -41,14 +41,14 @@ class Game:
         self.level_map = [
             "  B   B   ",
             "          ",
-            "   BBB   B",
+            "   BBB    ",
             "          ",
             "       BB ",
             "  BB      ",
             "   B     B",
             "   BB   B ",
             "          ",
-            "  B   BBB ",
+            "     BBB  ",
         ]
         
         self.generate_border_blocks()
