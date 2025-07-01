@@ -6,7 +6,7 @@ from enemy import Enemy
 from bullet import Bullet
 
 class Game:
-    TILE_SIZE = 60
+    TILE_SIZE = 60 
 
     def __init__(self, screen, player_img, block_img, shoot_sound, explosion_sound, enemy_img, block_st2, block_st3, max_enemies):
         self.screen = screen
@@ -25,7 +25,6 @@ class Game:
             self.background = pygame.transform.scale(self.background, (self.width, self.height))
         except (pygame.error, FileNotFoundError):
             self.background = None
-        self.reset_game()
 
     def reset_game(self):
         self.blocks = []
@@ -36,19 +35,22 @@ class Game:
         self.game_won = False
         self.map_width = self.width // self.TILE_SIZE
         self.map_height = self.height // self.TILE_SIZE
-        self.tile_size = 48
+        self.tile_size = 48  
+        
+
         self.level_map = [
-            "BBBB  BBBB",
-            "B  B  B  B",
-            "BBBB  BBBB",
+            "  B   B   ",
             "          ",
-            " BBBB  BB ",
-            " BBBB  BB ",
+            "   BBB   B",
             "          ",
-            "BBBBBBBBBB",
-            "B    BB  B",
-            "BBBB  BBBB",
+            "       BB ",
+            "  BB      ",
+            "   B     B",
+            "   BB   B ",
+            "          ",
+            "  B   BBB ",
         ]
+        
         self.generate_border_blocks()
         self.generate_brick_blocks()
 
@@ -56,51 +58,55 @@ class Game:
         py = self.height // 2
         self.player = Player(px, py, self.player_img, self.shoot_sound, self.explosion_sound)
 
-        spawn_points = [
-            (self.TILE_SIZE * 1 + self.TILE_SIZE // 2, self.TILE_SIZE * 1 + self.TILE_SIZE // 2),
-            (self.TILE_SIZE * (self.map_width - 2) + self.TILE_SIZE // 2, self.TILE_SIZE * 1 + self.TILE_SIZE // 2),
-            (self.TILE_SIZE * 1 + self.TILE_SIZE // 2, self.TILE_SIZE * (self.map_height - 2) + self.TILE_SIZE // 2),
-            (self.TILE_SIZE * (self.map_width - 2) + self.TILE_SIZE // 2, self.TILE_SIZE * (self.map_height - 2) + self.TILE_SIZE // 2),
-            (self.TILE_SIZE * (self.map_width // 2) + self.TILE_SIZE // 2, self.TILE_SIZE * 1 + self.TILE_SIZE // 2),
-            (self.TILE_SIZE * 1 + self.TILE_SIZE // 2, self.TILE_SIZE * (self.map_height // 2) + self.TILE_SIZE // 2),
-            (self.TILE_SIZE * (self.map_width - 2) + self.TILE_SIZE // 2, self.TILE_SIZE * (self.map_height // 2) + self.TILE_SIZE // 2),
-        ]
+
+        all_positions = []
+        for y in range(1, self.map_height - 1):
+            for x in range(1, self.map_width - 1):
+                all_positions.append((
+                    x * self.tile_size + self.tile_size // 2,
+                    y * self.tile_size + self.tile_size // 2
+                ))
+        
 
         enemy_size = self.enemy_img.get_rect().size
-
-        def can_spawn(x, y):
+        spawn_positions = []
+        
+        for pos in all_positions:
+            x, y = pos
+            can_spawn = True
             enemy_rect = pygame.Rect(0, 0, *enemy_size)
             enemy_rect.center = (x, y)
+            
+
             for block in self.blocks:
                 if block.rect.colliderect(enemy_rect):
-                    return False
-            for enemy in self.enemies:
-                if enemy.rect.colliderect(enemy_rect):
-                    return False
-            if self.player.rect.colliderect(enemy_rect):
-                return False
-            return True
+                    can_spawn = False
+                    break
+            
 
-        self.enemies = []
+            if can_spawn:
+                player_dist = pygame.math.Vector2(x - px, y - py).length()
+                if player_dist < 200: 
+                    can_spawn = False
+            
+            if can_spawn:
+                spawn_positions.append(pos)
+        
+        random.shuffle(spawn_positions)
+        
+
+        spawn_positions = spawn_positions[:min(len(spawn_positions), self.max_enemies * 3)]
+        
+
         spawned = 0
-        i = 0
-        max_spawn_points = len(spawn_points)
-        max_attempts = 100  # обмеження, щоб не зависати бо гра вилітала взагалі коли я виправив код напевно через те що була бескінечна перевірка чи спавниться ворог коректно
-        attempts = 0
-
-        while spawned < self.max_enemies and attempts < max_attempts:
-            x, y = spawn_points[i % max_spawn_points]
-            offset_x = random.randint(-10, 10)
-            offset_y = random.randint(-10, 10)
-            nx, ny = x + offset_x, y + offset_y
-
-            if can_spawn(nx, ny):
-                enemy = Enemy(nx, ny, self.enemy_img, self.shoot_sound, self.explosion_sound)
-                self.enemies.append(enemy)
-                spawned += 1
-
-            i += 1
-            attempts += 1
+        for pos in spawn_positions:
+            if spawned >= self.max_enemies:
+                break
+                
+            x, y = pos
+            enemy = Enemy(x, y, self.enemy_img, self.shoot_sound, self.explosion_sound)
+            self.enemies.append(enemy)
+            spawned += 1
 
     def generate_brick_blocks(self):
         for row_index, row in enumerate(self.level_map):

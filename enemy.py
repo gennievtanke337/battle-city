@@ -87,7 +87,6 @@ class Enemy:
                 self.direction = dir_
                 self.dx, self.dy = dx, dy
                 return
-        # Якщо нема варіантів — розвернутись
         self.dx = -self.dx
         self.dy = -self.dy
 

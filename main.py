@@ -6,7 +6,6 @@ pygame.mixer.init()
 
 screen_width = 576
 screen_height = 576
-
 screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.set_caption("Battle City Remake")
 clock = pygame.time.Clock()
@@ -32,7 +31,7 @@ game_music = "game_background_music.mp3"
 
 font = pygame.font.SysFont(None, 72)
 title_text = font.render("Battle City Remake", True, (255, 255, 255))
-start_text = font.render("1-Easy 2-Medium 3-Hard", True, (255, 255, 255))
+start_text = font.render("1-Easy  2-Medium  3-Hard", True, (255, 255, 255))
 
 def play_music(file, loops=-1):
     pygame.mixer.music.load(file)
@@ -43,6 +42,7 @@ def stop_music():
 
 def game_loop(enemy_count):
     game = Game(screen, player_img, block_img, shoot_sound, explosion_sound, enemy_img, block_st2_img, block_st3_img, enemy_count)
+    game.reset_game()
     running = True
     while running:
         for event in pygame.event.get():
@@ -66,37 +66,16 @@ def main():
             if event.type == pygame.QUIT:
                 running = False
             if in_menu and event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_1:
+                if event.key in (pygame.K_1, pygame.K_2, pygame.K_3):
                     stop_music()
                     play_music(game_music)
-                    result = game_loop(3)
+                    enemies = 3 if event.key == pygame.K_1 else 5 if event.key == pygame.K_2 else 7
+                    result = game_loop(enemies)
                     stop_music()
                     play_music(menu_music)
+                    in_menu = True
                     if not result:
                         running = False
-                    else:
-                        in_menu = True
-                elif event.key == pygame.K_2:
-                    stop_music()
-                    play_music(game_music)
-                    result = game_loop(5)
-                    stop_music()
-                    play_music(menu_music)
-                    if not result:
-                        running = False
-                    else:
-                        in_menu = True
-                elif event.key == pygame.K_3:
-                    stop_music()
-                    play_music(game_music)
-                    result = game_loop(7)
-                    stop_music()
-                    play_music(menu_music)
-                    if not result:
-                        running = False
-                    else:
-                        in_menu = True
-
         screen.fill((0, 0, 0))
         if in_menu:
             screen.blit(title_text, ((screen_width - title_text.get_width()) // 2, screen_height // 3))
