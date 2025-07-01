@@ -71,7 +71,6 @@ class Enemy:
         next_rect = self.rect.move(self.dx, self.dy)
         for block in blocks:
             if next_rect.colliderect(block.rect):
-                # ТУТ НЕ ЛАМАЄМО БЛОК
                 self.change_direction(blocks)
                 return False
         self.rect = next_rect
